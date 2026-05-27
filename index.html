@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>花火AR Pro 完全版</title>
+<title>花火AR Pro GPS・標高・山被り強化版</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0f172a;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 #map{height:100vh;width:100%}
-.panel{position:absolute;z-index:1000;top:10px;left:10px;width:430px;max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);overflow:auto;background:rgba(15,23,42,.96);border:1px solid #334155;border-radius:14px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.panel{position:absolute;z-index:1000;top:10px;left:10px;width:440px;max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);overflow:auto;background:rgba(15,23,42,.96);border:1px solid #334155;border-radius:14px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
 h2{font-size:18px;margin:0 0 10px}
 label{display:block;margin-top:8px;font-size:12px;color:#cbd5e1}
 input,select,textarea,button{width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #475569;background:#020617;color:#fff;font-size:13px}
@@ -31,16 +32,118 @@ button{border:none;background:#2563eb;font-weight:700;cursor:pointer}
 .dot.ng{border-color:#ef4444;color:#fecaca;background:rgba(239,68,68,.12)}
 .dot.warn{border-color:#eab308;color:#fef08a;background:rgba(234,179,8,.12)}
 .fan{position:absolute;height:2px;background:#facc15;transform-origin:left center;filter:drop-shadow(0 0 4px #000)}
+.windghost{position:absolute;border:1px dashed rgba(148,163,184,.9);border-radius:50%;transform:translate(-50%,-50%);color:#cbd5e1;background:rgba(148,163,184,.08);font-size:9px;display:flex;align-items:center;justify-content:center}
+.specialdot{position:absolute;border:2px solid #a78bfa;border-radius:50%;transform:translate(-50%,-50%);background:rgba(167,139,250,.12);color:#ddd6fe;font-size:9px;display:flex;align-items:center;justify-content:center;text-shadow:0 2px 4px #000}
+.timelinebar{height:8px;background:#334155;border-radius:999px;overflow:hidden;margin-top:6px}
+.timelinebar div{height:100%;width:0%;background:#38bdf8}
 .hud{position:absolute;left:8px;right:8px;bottom:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
 .hud div{background:rgba(15,23,42,.75);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px;text-align:center}
 @media(max-width:800px){.panel{position:relative;top:auto;left:auto;width:100%;max-height:none;border-radius:0}#map{height:68vh}#ar{width:42vw;top:78px}}
+.shootbar{display:none}
+.panelToggle{display:none}
+.uiModeBox{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.uiModeBox button{font-size:12px;padding:7px 4px}
+body.forceLandscape #map{height:100vh;width:100vw}
+body.forceLandscape .panel{
+  position:absolute;left:8px;top:8px;width:330px;max-height:calc(100vh - 16px);
+  transform:translateX(-105%);transition:.25s;opacity:.96;
+}
+body.forceLandscape .panel.open{transform:translateX(0)}
+body.forceLandscape .panelToggle{
+  display:block;position:absolute;z-index:1200;left:8px;top:8px;width:auto;
+  padding:10px 12px;border-radius:999px;background:rgba(15,23,42,.88);
+  border:1px solid rgba(255,255,255,.25);color:white;
+}
+body.forceLandscape #ar{
+  right:8px;top:8px;width:58vw;height:calc(100vh - 70px);aspect-ratio:auto;border-radius:18px;
+}
+body.forceLandscape .shootbar{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;position:absolute;z-index:1100;
+  left:8px;right:8px;bottom:8px;background:rgba(15,23,42,.78);
+  border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:6px;
+}
+body.forceLandscape .shootbar button{font-size:12px;padding:9px 4px;border-radius:10px;margin:0}
+
+body.forcePortrait .panel{position:relative;top:auto;left:auto;width:100%;max-height:none;border-radius:0;transform:none!important}
+body.forcePortrait #map{height:68vh}
+body.forcePortrait #ar{width:42vw;top:78px;right:10px;height:auto;aspect-ratio:9/16;border-radius:26px}
+body.forcePortrait .shootbar{display:none}
+body.forcePortrait .panelToggle{display:none}
+@media (orientation: landscape) and (max-height:520px){
+  body{overflow:hidden}
+  #map{height:100vh;width:100vw}
+  .panel{
+    position:absolute;
+    left:8px;
+    top:8px;
+    width:330px;
+    max-height:calc(100vh - 16px);
+    transform:translateX(-105%);
+    transition:.25s;
+    opacity:.96;
+  }
+  .panel.open{transform:translateX(0)}
+  .panelToggle{
+    display:block;
+    position:absolute;
+    z-index:1200;
+    left:8px;
+    top:8px;
+    width:auto;
+    padding:10px 12px;
+    border-radius:999px;
+    background:rgba(15,23,42,.88);
+    border:1px solid rgba(255,255,255,.25);
+    color:white;
+  }
+  #ar{
+    right:8px;
+    top:8px;
+    width:58vw;
+    height:calc(100vh - 70px);
+    aspect-ratio:auto;
+    border-radius:18px;
+  }
+  .shootbar{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:6px;
+    position:absolute;
+    z-index:1100;
+    left:8px;
+    right:8px;
+    bottom:8px;
+    background:rgba(15,23,42,.78);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:14px;
+    padding:6px;
+  }
+  .shootbar button{
+    font-size:12px;
+    padding:9px 4px;
+    border-radius:10px;
+    margin:0;
+  }
+  .hud{font-size:12px}
+}
+@supports(padding:max(0px)){
+  .shootbar{padding-bottom:max(6px,env(safe-area-inset-bottom))}
+  .panelToggle{margin-top:env(safe-area-inset-top)}
+}
 </style>
 </head>
 <body>
+<button class="panelToggle" onclick="togglePanel()">☰ 設定</button>
+
 <div id="map"></div>
 
 <div class="panel">
-<h2>花火AR Pro 完全版</h2>
+<h2>花火AR Pro GPS・標高強化版</h2>
+<div class="uiModeBox">
+<button class="secondary" onclick="setUiMode('auto')">自動UI</button>
+<button class="secondary" onclick="setUiMode('portrait')">縦UI</button>
+<button class="secondary" onclick="setUiMode('landscape')">横UI</button>
+</div>
 
 <div class="row">
 <div><label>撮影緯度</label><input id="camLat" value="35.011600"></div>
@@ -59,11 +162,19 @@ button{border:none;background:#2563eb;font-weight:700;cursor:pointer}
 </div>
 
 <div class="row">
+<button class="green" onclick="useGps()">GPS現在地を撮影場所にする</button>
 <button class="secondary" onclick="mode='camera'">地図クリックで撮影場所</button>
-<button onclick="moveCamera()">撮影位置へ移動</button>
 </div>
 
+<div class="row">
+<button onclick="moveCamera()">撮影位置へ移動</button>
 <button class="green" onclick="autoSetPitch()">標高から仰角を自動計算</button>
+</div>
+
+<div class="row">
+<button class="warnbtn" onclick="refreshElevations()">標高を再取得</button>
+<button class="secondary" onclick="clearElevationCache()">標高キャッシュ削除</button>
+</div>
 
 <label>背景地図</label>
 <select id="base" onchange="changeBase()">
@@ -90,20 +201,48 @@ C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 
 <label>見切れ・遮蔽物判定</label>
 <div class="row3">
-<div><label>稜線仰角°</label><input id="ridge" value="2.0"></div>
+<div><label>手動稜線仰角°</label><input id="ridge" value="2.0"></div>
 <div><label>遮蔽物高さm</label><input id="obs" value="0"></div>
 <div><label>余裕角°</label><input id="margin" value="1.0"></div>
 </div>
 
 <div class="row">
+<div><label>稜線モード</label><select id="ridgeMode"><option value="auto">実地形＋手動稜線</option><option value="manual">手動稜線のみ</option></select></div>
 <div><label>上下判定</label><select id="vJudge"><option value="full">上下完全に入れる</option><option value="top">頂点だけ入れば可</option></select></div>
+</div>
+
+<div class="row">
 <div><label>稜線判定</label><select id="ridgeJudge"><option value="bottom">花火下端で判定</option><option value="center">中心で判定</option><option value="top">頂点で判定</option></select></div>
+<div><label>GPS精度</label><input id="gpsAccuracy" value="---" readonly></div>
 </div>
 
 <div class="row">
 <button class="warnbtn" onclick="fitAll()">全体表示</button>
 <button class="danger" onclick="clearSites()">筒場削除</button>
 </div>
+<label>風流れ・時系列</label>
+<div class="row3">
+<div><label>風向</label><select id="windDir"><option value="0">北</option><option value="45">北東</option><option value="90">東</option><option value="135">南東</option><option value="180">南</option><option value="225">南西</option><option value="270">西</option><option value="315">北西</option></select></div>
+<div><label>風速m/s</label><input id="windSpeed" value="3"></div>
+<div><label>経過秒</label><input id="timeSec" value="8"></div>
+</div>
+<div class="row">
+<button class="green" onclick="playTimeline()">時系列再生</button>
+<button class="secondary" onclick="stopTimeline()">停止</button>
+</div>
+<div class="timelinebar"><div id="timelineFill"></div></div>
+<label>専用モデル</label>
+<div class="row3">
+<div><label>モデル</label><select id="specialModel"><option value="none">なし</option><option value="senrin">彩色千輪</option><option value="phoenix">フェニックス</option></select></div>
+<div><label>横幅m</label><input id="specialWidth" value="2000"></div>
+<div><label>点数</label><input id="specialCount" value="12"></div>
+</div>
+<div class="row">
+<button class="green" onclick="applySpecialModel()">専用モデルを筒場へ追加</button>
+<button class="secondary" onclick="clearSpecialModel()">専用モデル削除</button>
+</div>
+
+
 
 <div class="row">
 <button onclick="startCamera()">カメラ開始</button>
@@ -120,8 +259,30 @@ C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 
 <div class="row">
 <button class="green" onclick="exportKml()">KML出力</button>
-<button class="secondary" onclick="alert('KMZは、出力したKMLをGoogle Earth Proで開き、名前を付けて場所を保存→KMZ形式で保存してください。')">KMZ案内</button>
+<button class="secondary" onclick="exportKmz()">KMZ出力</button>
 </div>
+<label>Blender / DAE連携</label>
+<div class="row3">
+<div><label>球体分割</label><input id="daeSegments" value="24"></div>
+<div><label>縦倍率</label><input id="daeZScale" value="1.0"></div>
+<div><label>出力縮尺</label><input id="daeScale" value="1.0"></div>
+</div>
+<div class="row">
+<button class="green" onclick="exportDae()">DAE出力</button>
+<button class="secondary" onclick="exportDaeKml()">DAE配置KML出力</button>
+</div>
+
+<label>OBSオーバーレイ</label>
+<div class="row3">
+<div><label>横px</label><input id="obsW" value="1920"></div>
+<div><label>縦px</label><input id="obsH" value="1080"></div>
+<div><label>線太さ</label><input id="obsLine" value="3"></div>
+</div>
+<div class="row">
+<button class="green" onclick="openObsOverlay()">OBS用HTMLを別窓表示</button>
+<button class="secondary" onclick="downloadObsOverlay()">OBS用HTML保存</button>
+</div>
+
 
 <div id="res" class="result">起動待ち</div>
 </div>
@@ -131,19 +292,43 @@ C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 <div class="linev v1"></div><div class="linev v2"></div>
 <div class="lineh h1"></div><div class="lineh h2"></div>
 <div id="ridgeLine" class="ridge"></div>
+<div id="specialDots"></div>
+<div id="windGhosts"></div>
 <div id="fans"></div>
 <div id="dots"></div>
 <div class="cross">+</div>
 <div class="hud"><div id="hudFocal">35mm</div><div id="hudAngle">---</div></div>
 </div>
 
+<div class="shootbar">
+<button onclick="togglePanel()">設定</button>
+<button onclick="useGps()">GPS</button>
+<button onclick="autoSetPitch()">仰角</button>
+<button onclick="fitAll()">全体</button>
+<button onclick="startCamera()">カメラ</button>
+</div>
+
 <script>
 const R=6371000;
-let map,marker,mode=null,stream=null;
+let map,marker,gpsCircle,mode=null,stream=null;
+let timelineTimer=null;
+let timelineT=0;
 let sites=[],layers=[];
+let specialSites=[];
+let elevationCache={};
+let elevationReady=false;
+let camElevation=0;
+
 const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OSM'});
 const photo=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 
+function togglePanel(){document.querySelector('.panel').classList.toggle('open')}
+let uiMode=localStorage.getItem('fwUiMode')||'auto';
+function setUiMode(mode){
+  uiMode=mode;
+  localStorage.setItem('fwUiMode',mode);
+  applyOrientationUi();
+}
 function d2r(d){return d*Math.PI/180}
 function r2d(r){return r*180/Math.PI}
 function n360(d){return(d%360+360)%360}
@@ -156,36 +341,98 @@ function shellDia(n){return n*32}
 function shellHeight(n){return n*30}
 function tigerLen(n){return n*55}
 
-function cam(){return{lat:+camLat.value,lng:+camLng.value,f:+focal.value,sw:+sw.value,sh:+sh.value,pitch:+pitch.value,ridge:+ridge.value,obs:+obs.value,margin:+margin.value}}
+function cam(){return{lat:+camLat.value,lng:+camLng.value,f:+focal.value,sw:+sw.value,sh:+sh.value,pitch:+pitch.value,ridge:+ridge.value,obs:+obs.value,margin:+margin.value,elev:camElevation}}
 function fovs(){const c=cam();let w=c.sw,h=c.sh;if(orient.value==='portrait'){w=c.sh;h=c.sw}return{h:fov(w,c.f),v:fov(h,c.f),sensorW:w}}
 function list(v,min,max){return String(v||'').replaceAll('"','').split('|').map(x=>+x.trim()).filter(x=>!isNaN(x)&&x>=min&&x<=max)}
 function maxDia(s){return Math.max(s.width||0,...s.shells.map(shellDia),...s.tigers.map(tigerLen),0)}
 function maxHeight(s){return Math.max(...s.shells.map(shellHeight),...s.tigers.map(x=>tigerLen(x)*0.7),0)}
 
+function elevKey(lat,lng){return Number(lat).toFixed(5)+','+Number(lng).toFixed(5)}
 async function getElevation(lat,lng){
-  const url='https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon='+lng+'&lat='+lat+'&outtype=JSON';
-  const res=await fetch(url);
-  const json=await res.json();
-  if(json.elevation===null||isNaN(json.elevation))return 0;
-  return Number(json.elevation);
+  const key=elevKey(lat,lng);
+  if(elevationCache[key]!==undefined)return elevationCache[key];
+  try{
+    const url='https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon='+lng+'&lat='+lat+'&outtype=JSON';
+    const res=await fetch(url);
+    const json=await res.json();
+    const e=(json.elevation===null||isNaN(json.elevation))?0:Number(json.elevation);
+    elevationCache[key]=e;
+    return e;
+  }catch(err){
+    elevationCache[key]=0;
+    return 0;
+  }
+}
+
+async function refreshElevations(){
+  res.textContent='標高を取得中...';
+  const c=cam();
+  camElevation=await getElevation(c.lat,c.lng);
+  for(const s of allSites()){
+    s.elev=await getElevation(s.lat,s.lng);
+  }
+  elevationReady=True;
+}
+
+async function refreshElevations(){
+  res.textContent='標高を取得中...';
+  const c=cam();
+  camElevation=await getElevation(c.lat,c.lng);
+  for(const s of allSites()){
+    s.elev=await getElevation(s.lat,s.lng);
+  }
+  elevationReady=true;
+  draw();
+}
+
+function clearElevationCache(){
+  elevationCache={};
+  camElevation=0;
+  sites.forEach(s=>s.elev=0);
+  elevationReady=false;
+  draw();
+  alert('標高キャッシュを削除しました');
 }
 
 async function autoSetPitch(){
   if(!sites.length){alert('筒場を先に読み込んでください');return}
+  await refreshElevations();
   const c=cam();
-  const camElev=await getElevation(c.lat,c.lng);
   let sum=0;
-  for(const s of sites){
-    const siteElev=await getElevation(s.lat,s.lng);
+  for(const s of targetSites){
     const d=dist(c.lat,c.lng,s.lat,s.lng);
     const h=maxHeight(s);
-    const angle=r2d(Math.atan2(siteElev+h-camElev,Math.max(d,1)));
+    const angle=r2d(Math.atan2((s.elev||0)+h-camElevation,Math.max(d,1)));
     sum+=angle;
   }
   const avg=sum/sites.length;
   pitch.value=avg.toFixed(2);
   draw();
-  alert('仰角を自動設定しました\\n撮影場所標高: '+camElev.toFixed(1)+'m\\n平均仰角: '+avg.toFixed(2)+'°');
+  alert('仰角を自動設定しました\\n撮影場所標高: '+camElevation.toFixed(1)+'m\\n平均仰角: '+avg.toFixed(2)+'°');
+}
+
+function useGps(){
+  if(!navigator.geolocation){
+    alert('この端末/ブラウザはGPSに対応していません');
+    return;
+  }
+  res.textContent='GPS取得中...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude;
+    const lng=pos.coords.longitude;
+    const acc=pos.coords.accuracy;
+    camLat.value=lat.toFixed(6);
+    camLng.value=lng.toFixed(6);
+    gpsAccuracy.value=Math.round(acc)+'m';
+    marker.setLatLng([lat,lng]);
+    if(gpsCircle)map.removeLayer(gpsCircle);
+    gpsCircle=L.circle([lat,lng],{radius:acc,color:'#38bdf8',fillColor:'#38bdf8',fillOpacity:.12}).addTo(map);
+    map.setView([lat,lng],16);
+    refreshElevations();
+  },err=>{
+    alert('GPS取得に失敗しました。HTTPS、位置情報許可、端末GPSを確認してください。');
+    res.textContent='GPS取得失敗';
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 }
 
 function init(){
@@ -201,6 +448,7 @@ function init(){
     camLat.value=p.lat.toFixed(6);
     camLng.value=p.lng.toFixed(6);
     draw();
+    refreshElevations();
   });
 
   map.on('click',e=>{
@@ -210,19 +458,22 @@ function init(){
       marker.setLatLng([e.latlng.lat,e.latlng.lng]);
       mode=null;
       draw();
+      refreshElevations();
       return;
     }
     if(mode==='site'){
       const name=prompt('筒場名','Site'+(sites.length+1));
       if(!name)return;
-      sites.push({name,lat:e.latlng.lat,lng:e.latlng.lng,shells:[+addShell.value],tigers:[+addTiger.value],width:+addWidth.value});
+      sites.push({name,lat:e.latlng.lat,lng:e.latlng.lng,shells:[+addShell.value],tigers:[+addTiger.value],width:+addWidth.value,elev:0});
       syncCsv();
       mode=null;
       draw();
+      refreshElevations();
     }
   });
 
   loadSites();
+  refreshElevations();
 }
 
 function changeBase(){
@@ -234,269 +485,9 @@ function moveCamera(){
   marker.setLatLng([+camLat.value,+camLng.value]);
   map.setView([+camLat.value,+camLng.value],15);
   draw();
+  refreshElevations();
 }
 
 function loadSites(){
   sites=csv.value.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
-    const c=l.split(',').map(x=>x.trim());
-    return{name:c[0],lat:+c[1],lng:+c[2],shells:list(c[3],2,40),tigers:list(c[4],2,10),width:+(c[5]||500)}
-  }).filter(s=>!isNaN(s.lat)&&!isNaN(s.lng));
-  draw();
-}
-
-function syncCsv(){
-  csv.value=sites.map(s=>[s.name,s.lat.toFixed(6),s.lng.toFixed(6),s.shells.join('|'),s.tigers.join('|'),s.width].join(',')).join('\n');
-}
-
-function clearSites(){
-  sites=[];
-  csv.value='';
-  draw();
-}
-
-function clearLayers(){
-  layers.forEach(l=>map.removeLayer(l));
-  layers=[];
-}
-
-function calc(){
-  const c=cam(),fv=fovs();
-  if(!sites.length)return{c,fv,rows:[],aim:0,left:0,right:0,req:0,rec:0,allOK:false};
-
-  const avgLat=sites.reduce((a,s)=>a+s.lat,0)/sites.length;
-  const avgLng=sites.reduce((a,s)=>a+s.lng,0)/sites.length;
-  const aim=brg(c.lat,c.lng,avgLat,avgLng);
-
-  let left=999,right=-999;
-  const rows=[];
-
-  for(const s of sites){
-    const d=dist(c.lat,c.lng,s.lat,s.lng);
-    const b=brg(c.lat,c.lng,s.lat,s.lng);
-    const off=sdiff(b,aim);
-    const dia=maxDia(s);
-    const h=maxHeight(s);
-
-    const halfH=r2d(Math.atan((dia/2)/Math.max(d,1)));
-    const l=off-halfH;
-    const r=off+halfH;
-
-    const centerElev=r2d(Math.atan(h/Math.max(d,1)));
-    const halfV=r2d(Math.atan((dia/2)/Math.max(d,1)));
-    const topElev=centerElev+halfV;
-    const bottomElev=centerElev-halfV;
-
-    const obsElev=r2d(Math.atan(c.obs/Math.max(d,1)));
-    const ridgeElev=c.ridge+obsElev;
-
-    const hOK=l>=-fv.h/2&&r<=fv.h/2;
-
-    let vOK=false;
-    if(vJudge.value==='top')vOK=topElev>=c.pitch-fv.v/2&&topElev<=c.pitch+fv.v/2;
-    else vOK=bottomElev>=c.pitch-fv.v/2&&topElev<=c.pitch+fv.v/2;
-
-    let ridgeTarget=bottomElev;
-    if(ridgeJudge.value==='center')ridgeTarget=centerElev;
-    if(ridgeJudge.value==='top')ridgeTarget=topElev;
-
-    const ridgeOK=ridgeTarget>ridgeElev+c.margin;
-    const visible=hOK&&vOK&&ridgeOK;
-
-    left=Math.min(left,l);
-    right=Math.max(right,r);
-
-    rows.push({...s,d,off,dia,h,left:l,right:r,centerElev,topElev,bottomElev,ridgeElev,hOK,vOK,ridgeOK,visible,halfH});
-  }
-
-  const req=right-left;
-  const rec=req>0?fv.sensorW/(2*Math.tan(d2r(req*1.08/2))):0;
-
-  return{c,fv,rows,aim,left,right,req,rec,allOK:rows.every(r=>r.visible)};
-}
-
-function draw(){
-  clearLayers();
-  const data=calc();
-  const c=data.c;
-
-  for(const r of data.rows){
-    let color='#22c55e';
-    if(!r.ridgeOK)color='#ef4444';
-    else if(!r.hOK||!r.vOK)color='#eab308';
-
-    layers.push(
-      L.circle([r.lat,r.lng],{radius:r.dia/2,color,fillColor:color,fillOpacity:.18}).addTo(map).bindPopup(
-        '<b>'+r.name+'</b><br>左右:'+(r.hOK?'OK':'NG')+'<br>上下:'+(r.vOK?'OK':'NG')+'<br>稜線:'+(r.ridgeOK?'OK':'NG')
-      )
-    );
-    layers.push(L.marker([r.lat,r.lng]).addTo(map));
-
-    const base=brg(c.lat,c.lng,r.lat,r.lng);
-    const cnt=r.tigers.length;
-    r.tigers.forEach((n,i)=>{
-      const a=cnt===1?0:-25+(50/(cnt-1))*i;
-      const p=dest(r.lat,r.lng,base+a,tigerLen(n));
-      layers.push(L.polyline([[r.lat,r.lng],p],{color:'#facc15',weight:2}).addTo(map));
-    });
-  }
-
-  if(data.rows.length){
-    const len=Math.max(1000,...data.rows.map(r=>r.d+r.dia));
-    [data.aim-data.fv.h/2,data.aim+data.fv.h/2].forEach(x=>{
-      layers.push(L.polyline([[c.lat,c.lng],dest(c.lat,c.lng,x,len)],{color:'#60a5fa',dashArray:'8,8'}).addTo(map));
-    });
-    [data.aim+data.left,data.aim+data.right].forEach(x=>{
-      layers.push(L.polyline([[c.lat,c.lng],dest(c.lat,c.lng,x,len)],{color:'#f97316',weight:3}).addTo(map));
-    });
-  }
-
-  update(data);
-}
-
-function update(data){
-  dots.innerHTML='';
-  fans.innerHTML='';
-  hudFocal.textContent=focal.value+'mm';
-  hudAngle.textContent='方位 '+data.aim.toFixed(0)+'°';
-
-  if(data.fv&&data.fv.v){
-    const y=50-((+ridge.value-+pitch.value)/data.fv.v)*100;
-    ridgeLine.style.top=Math.max(5,Math.min(95,y))+'%';
-  }
-
-  const lines=data.rows.map(r=>{
-    let reason='見える';
-    if(!r.ridgeOK)reason='遮蔽物・山の稜線で被り';
-    else if(!r.hOK)reason='左右見切れ';
-    else if(!r.vOK)reason='上下見切れ';
-
-    return r.name+': '+reason+
-      '\\n  左右 '+r.left.toFixed(1)+'°〜'+r.right.toFixed(1)+'°'+
-      '\\n  上下 '+r.bottomElev.toFixed(1)+'°〜'+r.topElev.toFixed(1)+'°'+
-      '\\n  稜線+遮蔽物 '+r.ridgeElev.toFixed(1)+'°';
-  }).join('\\n\\n');
-
-  res.innerHTML=
-    '水平画角: '+data.fv.h.toFixed(2)+'°\\n'+
-    '垂直画角: '+data.fv.v.toFixed(2)+'°\\n'+
-    'カメラ仰角: '+data.c.pitch.toFixed(1)+'°\\n'+
-    '必要水平画角: '+data.req.toFixed(2)+'°\\n'+
-    '推奨焦点距離: 約 '+data.rec.toFixed(1)+'mm以下\\n'+
-    '総合判定: <span class="'+(data.allOK?'ok':'ng')+'">'+(data.allOK?'OK':'NG')+'</span>\\n\\n'+
-    lines;
-
-  for(const r of data.rows){
-    const x=50+(r.off/data.fv.h)*100;
-    const y=50-((r.centerElev-data.c.pitch)/data.fv.v)*100;
-    const size=Math.max(20,Math.min(120,(r.halfH*2/data.fv.h)*100));
-
-    const d=document.createElement('div');
-    d.className='dot';
-    if(!r.visible)d.classList.add(r.ridgeOK?'warn':'ng');
-    d.style.left=x+'%';
-    d.style.top=y+'%';
-    d.style.width=size+'%';
-    d.style.height=size+'%';
-    d.textContent=r.name+'\\n'+r.shells.join('|')+'号';
-    dots.appendChild(d);
-
-    const cnt=r.tigers.length;
-    r.tigers.forEach((n,i)=>{
-      const fan=document.createElement('div');
-      fan.className='fan';
-      const a=cnt===1?0:-30+(60/(cnt-1))*i;
-      fan.style.left=x+'%';
-      fan.style.top=(y+16)+'%';
-      fan.style.width=Math.min(120,20+n*8)+'px';
-      fan.style.transform='rotate('+(-65+a)+'deg)';
-      fans.appendChild(fan);
-    });
-  }
-}
-
-function fitAll(){
-  const pts=[[+camLat.value,+camLng.value],...sites.map(s=>[s.lat,s.lng])];
-  map.fitBounds(pts,{padding:[40,40]});
-}
-
-async function startCamera(){
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-    video.srcObject=stream;
-  }catch(e){
-    alert('カメラ起動失敗');
-  }
-}
-
-function stopCamera(){
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
-    stream=null;
-    video.srcObject=null;
-  }
-}
-
-function savePreset(){
-  const name=presetName.value||'default';
-  localStorage.setItem('fwPreset_'+name,JSON.stringify({
-    camLat:camLat.value,camLng:camLng.value,focal:focal.value,orient:orient.value,pitch:pitch.value,
-    sw:sw.value,sh:sh.value,csv:csv.value,ridge:ridge.value,obs:obs.value,margin:margin.value,
-    vJudge:vJudge.value,ridgeJudge:ridgeJudge.value
-  }));
-  alert('保存しました: '+name);
-}
-
-function loadPreset(){
-  const name=presetName.value||'default';
-  const raw=localStorage.getItem('fwPreset_'+name);
-  if(!raw){alert('プリセットがありません');return}
-  const o=JSON.parse(raw);
-  Object.keys(o).forEach(k=>{
-    if(document.getElementById(k))document.getElementById(k).value=o[k];
-  });
-  loadSites();
-  alert('読込しました: '+name);
-}
-
-function deletePreset(){
-  const name=presetName.value||'default';
-  localStorage.removeItem('fwPreset_'+name);
-  alert('削除しました: '+name);
-}
-
-function exportKml(){
-  const data=calc();
-  const c=data.c;
-  let k='<?xml version="1.0" encoding="UTF-8"?>';
-  k+='<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Fireworks AR</name>';
-  k+='<Placemark><name>撮影位置</name><Point><coordinates>'+c.lng+','+c.lat+',0</coordinates></Point></Placemark>';
-  data.rows.forEach(r=>{
-    k+='<Placemark><name>'+r.name+'</name><description>'+(
-      r.visible?'OK':'NG'
-    )+' 号数:'+r.shells.join('|')+' トラ:'+r.tigers.join('|')+'</description><Point><coordinates>'+r.lng+','+r.lat+','+Math.round(r.h)+'</coordinates></Point></Placemark>';
-  });
-  if(data.rows.length){
-    const len=Math.max(1000,...data.rows.map(r=>r.d+r.dia));
-    [['FOV_Left',data.aim-data.fv.h/2],['FOV_Right',data.aim+data.fv.h/2],['Fireworks_Left',data.aim+data.left],['Fireworks_Right',data.aim+data.right]].forEach(x=>{
-      const p=dest(c.lat,c.lng,x[1],len);
-      k+='<Placemark><name>'+x[0]+'</name><LineString><coordinates>'+c.lng+','+c.lat+',0 '+p[1]+','+p[0]+',0</coordinates></LineString></Placemark>';
-    });
-  }
-  k+='</Document></kml>';
-  const blob=new Blob([k],{type:'application/vnd.google-earth.kml+xml'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='fireworks_ar.kml';
-  a.click();
-}
-
-document.addEventListener('input',e=>{
-  if(['focal','orient','pitch','sw','sh','ridge','obs','margin','vJudge','ridgeJudge'].includes(e.target.id)){
-    draw();
-  }
-});
-
-window.onload=init;
-</script>
-</body>
-</html>
+    const c=l.split(',').map(x
