@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
 <title>花火AR Pro</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
+
 *{
   box-sizing:border-box;
 }
@@ -40,15 +42,14 @@ body{
 }
 
 h2{
-  font-size:16px;
-  margin:0 0 8px;
+  margin:0 0 10px;
 }
 
 label{
   display:block;
+  margin-top:8px;
   font-size:12px;
   color:#cbd5e1;
-  margin-top:8px;
 }
 
 input,
@@ -70,8 +71,8 @@ textarea{
 }
 
 button{
-  background:#2563eb;
   border:none;
+  background:#2563eb;
   font-weight:700;
 }
 
@@ -104,13 +105,13 @@ button{
 }
 
 .result{
-  white-space:pre-wrap;
+  margin-top:10px;
   background:#020617;
   border-radius:8px;
   padding:8px;
-  margin-top:8px;
   font-size:12px;
-  line-height:1.55;
+  white-space:pre-wrap;
+  line-height:1.6;
 }
 
 .ok{
@@ -199,6 +200,7 @@ button{
     top:78px;
   }
 }
+
 </style>
 </head>
 
@@ -260,6 +262,25 @@ button{
 
 </div>
 
+<div class="row">
+
+<button class="secondary" onclick="mode='camera'">
+地図クリックで撮影場所追加
+</button>
+
+<button onclick="moveCamera()">
+撮影位置へ移動
+</button>
+
+</div>
+
+<label>背景地図</label>
+
+<select id="base" onchange="changeBase()">
+<option value="osm">地図</option>
+<option value="photo">航空写真</option>
+</select>
+
 <label>筒場CSV</label>
 
 <textarea id="csv">A,35.015000,135.780000,10|20|30,2|4|6,600
@@ -268,7 +289,9 @@ C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 
 <div class="row">
 
-<button onclick="loadSites()">CSV読込</button>
+<button onclick="loadSites()">
+CSV読込
+</button>
 
 <button class="secondary" onclick="mode='site'">
 地図クリックで筒場追加
@@ -297,7 +320,9 @@ C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 
 <div class="row">
 
-<button onclick="fitAll()">全体表示</button>
+<button onclick="fitAll()">
+全体表示
+</button>
 
 <button class="danger" onclick="clearSites()">
 筒場削除
@@ -307,7 +332,9 @@ C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 
 <div class="row">
 
-<button onclick="startCamera()">カメラ開始</button>
+<button onclick="startCamera()">
+カメラ開始
+</button>
 
 <button class="secondary" onclick="stopCamera()">
 カメラ停止
@@ -369,8 +396,7 @@ const photo = L.tileLayer(
 }
 );
 
-L.control.layers(
-{
+L.control.layers({
   '地図':osm,
   '航空写真':photo
 }).addTo(map);
@@ -378,6 +404,8 @@ L.control.layers(
 let sites = [];
 let mode = null;
 let stream = null;
+let cameraMarker = null;
+let layers = [];
 
 function init(){
 
@@ -395,7 +423,41 @@ function init(){
     );
   }
 
+  cameraMarker = L.marker(
+    [35.0116,135.7681],
+    {
+      draggable:true
+    }
+  ).addTo(map);
+
+  cameraMarker.on('dragend',e=>{
+
+    const p = e.target.getLatLng();
+
+    camLat.value = p.lat.toFixed(6);
+    camLng.value = p.lng.toFixed(6);
+
+  });
+
   map.on('click',e=>{
+
+    if(mode==='camera'){
+
+      camLat.value =
+        e.latlng.lat.toFixed(6);
+
+      camLng.value =
+        e.latlng.lng.toFixed(6);
+
+      cameraMarker.setLatLng([
+        e.latlng.lat,
+        e.latlng.lng
+      ]);
+
+      mode = null;
+
+      return;
+    }
 
     if(mode==='site'){
 
@@ -407,12 +469,14 @@ function init(){
       if(!name)return;
 
       sites.push({
+
         name:name,
         lat:e.latlng.lat,
         lng:e.latlng.lng,
         shells:[+addShell.value],
         tigers:[+addTiger.value],
         width:+addWidth.value
+
       });
 
       syncCsv();
@@ -424,6 +488,28 @@ function init(){
   });
 
   loadSites();
+}
+
+function changeBase(){
+
+  if(base.value==='osm'){
+
+    map.removeLayer(photo);
+    map.addLayer(osm);
+
+  }else{
+
+    map.removeLayer(osm);
+    map.addLayer(photo);
+  }
+}
+
+function moveCamera(){
+
+  map.setView([
+    +camLat.value,
+    +camLng.value
+  ],15);
 }
 
 function loadSites(){
@@ -476,17 +562,26 @@ function clearSites(){
   draw();
 }
 
+function clearLayers(){
+
+  layers.forEach(l=>{
+
+    map.removeLayer(l);
+
+  });
+
+  layers = [];
+}
+
 function draw(){
 
-  document
-    .querySelectorAll('.leaflet-interactive')
-    .forEach(v=>{});
+  clearLayers();
 
   dots.innerHTML='';
 
   sites.forEach(s=>{
 
-    L.circle(
+    const circle = L.circle(
       [s.lat,s.lng],
       {
         radius:s.width/2,
@@ -494,6 +589,14 @@ function draw(){
         fillOpacity:.2
       }
     ).addTo(map);
+
+    layers.push(circle);
+
+    const marker = L.marker(
+      [s.lat,s.lng]
+    ).addTo(map);
+
+    layers.push(marker);
 
     const d = document.createElement('div');
 
@@ -506,6 +609,7 @@ function draw(){
       (50 + Math.random()*20 - 10)+'%';
 
     d.style.width='70px';
+
     d.style.height='70px';
 
     dots.appendChild(d);
@@ -514,7 +618,7 @@ function draw(){
   res.innerHTML =
 `筒場数: ${sites.length}
 
-複数筒場対応:
+複数筒場:
 OK
 
 複数号玉:
@@ -569,7 +673,12 @@ function fitAll(){
   if(!sites.length)return;
 
   map.fitBounds(
-    sites.map(s=>[s.lat,s.lng]),
+
+    sites.map(s=>[
+      s.lat,
+      s.lng
+    ]),
+
     {
       padding:[40,40]
     }
@@ -580,8 +689,13 @@ function savePreset(){
 
   localStorage.setItem(
     'fwPreset',
+
     JSON.stringify({
+
+      camLat:camLat.value,
+      camLng:camLng.value,
       csv:csv.value
+
     })
   );
 
