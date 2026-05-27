@@ -3,748 +3,495 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>花火AR Pro</title>
-
+<title>花火AR Pro 見切れ判定対応</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
-
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  background:#0f172a;
-  color:#fff;
-  font-family:system-ui,sans-serif;
-}
-
-#map{
-  height:100vh;
-}
-
-.panel{
-  position:absolute;
-  z-index:1000;
-  top:10px;
-  left:10px;
-  width:410px;
-  max-width:calc(100vw - 20px);
-  max-height:calc(100vh - 20px);
-  overflow:auto;
-  background:rgba(15,23,42,.96);
-  border:1px solid #334155;
-  border-radius:14px;
-  padding:12px;
-}
-
-h2{
-  margin:0 0 10px;
-}
-
-label{
-  display:block;
-  margin-top:8px;
-  font-size:12px;
-  color:#cbd5e1;
-}
-
-input,
-select,
-textarea,
-button{
-  width:100%;
-  margin-top:4px;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #475569;
-  background:#020617;
-  color:#fff;
-}
-
-textarea{
-  min-height:120px;
-  font-family:monospace;
-}
-
-button{
-  border:none;
-  background:#2563eb;
-  font-weight:700;
-}
-
-.secondary{
-  background:#334155;
-}
-
-.warn{
-  background:#b45309;
-}
-
-.danger{
-  background:#b91c1c;
-}
-
-.green{
-  background:#15803d;
-}
-
-.row{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-}
-
-.row3{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:8px;
-}
-
-.result{
-  margin-top:10px;
-  background:#020617;
-  border-radius:8px;
-  padding:8px;
-  font-size:12px;
-  white-space:pre-wrap;
-  line-height:1.6;
-}
-
-.ok{
-  color:#86efac;
-  font-weight:700;
-}
-
-.ng{
-  color:#fca5a5;
-  font-weight:700;
-}
-
-#ar{
-  position:absolute;
-  right:10px;
-  top:10px;
-  width:min(38vw,430px);
-  aspect-ratio:9/16;
-  border:4px solid #fff;
-  border-radius:26px;
-  overflow:hidden;
-  z-index:900;
-  background:#111827;
-}
-
-#video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.linev,
-.lineh{
-  position:absolute;
-  background:rgba(255,255,255,.25);
-}
-
-.linev{
-  top:0;
-  bottom:0;
-  width:1px;
-}
-
-.lineh{
-  left:0;
-  right:0;
-  height:1px;
-}
-
-.v1{ left:33.3%; }
-.v2{ left:66.6%; }
-
-.h1{ top:33.3%; }
-.h2{ top:66.6%; }
-
-.cross{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  font-size:34px;
-}
-
-.dot{
-  position:absolute;
-  border:2px solid #22c55e;
-  border-radius:50%;
-  transform:translate(-50%,-50%);
-}
-
-@media(max-width:800px){
-
-  .panel{
-    position:relative;
-    width:100%;
-    max-height:none;
-    border-radius:0;
-  }
-
-  #map{
-    height:68vh;
-  }
-
-  #ar{
-    width:42vw;
-    top:78px;
-  }
-}
-
+*{box-sizing:border-box}
+body{margin:0;background:#0f172a;color:#fff;font-family:system-ui,sans-serif}
+#map{height:100vh}
+.panel{position:absolute;z-index:1000;top:10px;left:10px;width:430px;max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);overflow:auto;background:rgba(15,23,42,.96);border:1px solid #334155;border-radius:14px;padding:12px}
+label{display:block;margin-top:8px;font-size:12px;color:#cbd5e1}
+input,select,textarea,button{width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #475569;background:#020617;color:#fff}
+textarea{min-height:120px;font-family:monospace}
+button{border:0;background:#2563eb;font-weight:700}
+.secondary{background:#334155}.danger{background:#b91c1c}.green{background:#15803d}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.result{white-space:pre-wrap;background:#020617;border-radius:8px;padding:8px;margin-top:10px;font-size:12px;line-height:1.55}
+.ok{color:#86efac;font-weight:700}.ng{color:#fca5a5;font-weight:700}.warn{color:#fde68a;font-weight:700}
+#ar{position:absolute;right:10px;top:10px;width:min(38vw,430px);aspect-ratio:9/16;border:4px solid #fff;border-radius:26px;overflow:hidden;z-index:900;background:#111827;pointer-events:none}
+#video{width:100%;height:100%;object-fit:cover}
+.cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:34px}
+.dot{position:absolute;border:2px solid #22c55e;border-radius:50%;transform:translate(-50%,-50%);font-size:10px;text-align:center;white-space:pre-line;color:#bbf7d0;background:rgba(34,197,94,.12)}
+.dot.ng{border-color:#ef4444;color:#fecaca}.dot.warn{border-color:#eab308;color:#fef08a}
+.ridge{position:absolute;left:0;right:0;border-top:2px solid #ef4444;top:60%}
+@media(max-width:800px){.panel{position:relative;width:100%;max-height:none;border-radius:0}#map{height:68vh}#ar{width:42vw;top:78px}}
 </style>
 </head>
-
 <body>
 
 <div id="map"></div>
 
 <div class="panel">
-
 <h2>花火AR Pro</h2>
 
 <div class="row">
-
-<div>
-<label>撮影緯度</label>
-<input id="camLat" value="35.011600">
-</div>
-
-<div>
-<label>撮影経度</label>
-<input id="camLng" value="135.768100">
-</div>
-
+<div><label>撮影緯度</label><input id="camLat" value="35.011600"></div>
+<div><label>撮影経度</label><input id="camLng" value="135.768100"></div>
 </div>
 
 <div class="row3">
-
-<div>
-<label>焦点距離mm</label>
-<input id="focal" value="35">
-</div>
-
-<div>
-<label>構図</label>
-<select id="orient">
-<option value="portrait">縦</option>
-<option value="landscape">横</option>
-</select>
-</div>
-
-<div>
-<label>仰角°</label>
-<input id="pitch" value="8">
-</div>
-
+<div><label>焦点距離mm</label><input id="focal" value="35"></div>
+<div><label>構図</label><select id="orient"><option value="portrait">縦</option><option value="landscape">横</option></select></div>
+<div><label>カメラ仰角°</label><input id="pitch" value="8"></div>
 </div>
 
 <div class="row">
-
-<div>
-<label>センサー幅</label>
-<input id="sw" value="36">
-</div>
-
-<div>
-<label>センサー高</label>
-<input id="sh" value="24">
-</div>
-
+<div><label>センサー幅mm</label><input id="sw" value="36"></div>
+<div><label>センサー高mm</label><input id="sh" value="24"></div>
 </div>
 
 <div class="row">
-
-<button class="secondary" onclick="mode='camera'">
-地図クリックで撮影場所追加
-</button>
-
-<button onclick="moveCamera()">
-撮影位置へ移動
-</button>
-
+<button class="secondary" onclick="mode='camera'">地図クリックで撮影場所追加</button>
+<button onclick="moveCamera()">撮影位置へ移動</button>
 </div>
 
 <label>背景地図</label>
-
 <select id="base" onchange="changeBase()">
 <option value="osm">地図</option>
 <option value="photo">航空写真</option>
 </select>
 
-<label>筒場CSV</label>
-
+<label>筒場CSV：筒場名,緯度,経度,号数リスト,トラの尾号数リスト,花火幅m</label>
 <textarea id="csv">A,35.015000,135.780000,10|20|30,2|4|6,600
 B,35.018000,135.786000,8|10|15,3|5,450
 C,35.011000,135.790000,20|30|40,4|6|8|10,900</textarea>
 
 <div class="row">
-
-<button onclick="loadSites()">
-CSV読込
-</button>
-
-<button class="secondary" onclick="mode='site'">
-地図クリックで筒場追加
-</button>
-
+<button onclick="loadSites()">CSV読込</button>
+<button class="secondary" onclick="mode='site'">地図クリックで筒場追加</button>
 </div>
 
 <div class="row3">
-
-<div>
-<label>追加号数</label>
-<select id="addShell"></select>
+<div><label>追加号数</label><select id="addShell"></select></div>
+<div><label>追加トラ</label><select id="addTiger"></select></div>
+<div><label>幅m</label><input id="addWidth" value="500"></div>
 </div>
 
-<div>
-<label>追加トラ</label>
-<select id="addTiger"></select>
-</div>
-
-<div>
-<label>幅m</label>
-<input id="addWidth" value="500">
-</div>
-
+<label>見切れ・遮蔽物判定</label>
+<div class="row3">
+<div><label>稜線仰角°</label><input id="ridge" value="2.0"></div>
+<div><label>遮蔽物高さm</label><input id="obs" value="0"></div>
+<div><label>余裕角°</label><input id="margin" value="1.0"></div>
 </div>
 
 <div class="row">
-
-<button onclick="fitAll()">
-全体表示
-</button>
-
-<button class="danger" onclick="clearSites()">
-筒場削除
-</button>
-
+<div><label>上下判定</label><select id="vJudge"><option value="full">上下完全に入れる</option><option value="top">頂点だけ入れば可</option></select></div>
+<div><label>稜線判定</label><select id="ridgeJudge"><option value="bottom">花火下端で判定</option><option value="center">中心で判定</option><option value="top">頂点で判定</option></select></div>
 </div>
 
 <div class="row">
-
-<button onclick="startCamera()">
-カメラ開始
-</button>
-
-<button class="secondary" onclick="stopCamera()">
-カメラ停止
-</button>
-
+<button onclick="fitAll()">全体表示</button>
+<button class="danger" onclick="clearSites()">筒場削除</button>
 </div>
 
 <div class="row">
-
-<button class="green" onclick="exportKml()">
-KML出力
-</button>
-
-<button class="warn" onclick="savePreset()">
-プリセット保存
-</button>
-
+<button onclick="startCamera()">カメラ開始</button>
+<button class="secondary" onclick="stopCamera()">カメラ停止</button>
 </div>
 
-<div id="res" class="result">
-起動待ち
+<div class="row">
+<button class="green" onclick="exportKml()">KML出力</button>
+<button onclick="savePreset()">プリセット保存</button>
 </div>
 
+<div id="res" class="result">起動待ち</div>
 </div>
 
 <div id="ar">
-
 <video id="video" autoplay playsinline muted></video>
-
-<div class="linev v1"></div>
-<div class="linev v2"></div>
-
-<div class="lineh h1"></div>
-<div class="lineh h2"></div>
-
-<div class="cross">+</div>
-
+<div id="ridgeLine" class="ridge"></div>
 <div id="dots"></div>
-
+<div class="cross">+</div>
 </div>
 
 <script>
+const R=6371000;
+let map, marker, mode=null, stream=null;
+let sites=[], layers=[];
 
-const map = L.map('map').setView([35.0116,135.7681],13);
+const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19});
+const photo=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19});
 
-const osm = L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-  maxZoom:19,
-  attribution:'OSM'
+function d2r(d){return d*Math.PI/180}
+function r2d(r){return r*180/Math.PI}
+function n360(d){return(d%360+360)%360}
+function sdiff(a,b){let d=n360(a-b);return d>180?d-360:d}
+function dist(a,b,c,d){
+  const p1=d2r(a),p2=d2r(c),dp=d2r(c-a),dl=d2r(d-b);
+  const x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
-).addTo(map);
-
-const photo = L.tileLayer(
-'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-{
-  maxZoom:19,
-  attribution:'Esri'
+function brg(a,b,c,d){
+  const p1=d2r(a),p2=d2r(c),dl=d2r(d-b);
+  const y=Math.sin(dl)*Math.cos(p2);
+  const x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+  return n360(r2d(Math.atan2(y,x)));
 }
-);
+function dest(a,b,g,m){
+  const p1=d2r(a),l1=d2r(b),t=d2r(g),x=m/R;
+  const p2=Math.asin(Math.sin(p1)*Math.cos(x)+Math.cos(p1)*Math.sin(x)*Math.cos(t));
+  const l2=l1+Math.atan2(Math.sin(t)*Math.sin(x)*Math.cos(p1),Math.cos(x)-Math.sin(p1)*Math.sin(p2));
+  return [r2d(p2),r2d(l2)];
+}
+function fov(s,f){return r2d(2*Math.atan(s/(2*f)))}
+function shellDia(n){return n*32}
+function shellH(n){return n*30}
+function tigerLen(n){return n*55}
 
-L.control.layers({
-  '地図':osm,
-  '航空写真':photo
-}).addTo(map);
-
-let sites = [];
-let mode = null;
-let stream = null;
-let cameraMarker = null;
-let layers = [];
+function cam(){
+  return {
+    lat:+camLat.value,
+    lng:+camLng.value,
+    f:+focal.value,
+    sw:+sw.value,
+    sh:+sh.value,
+    pitch:+pitch.value,
+    ridge:+ridge.value,
+    obs:+obs.value,
+    margin:+margin.value
+  };
+}
+function fovs(){
+  const c=cam();
+  let w=c.sw,h=c.sh;
+  if(orient.value==='portrait'){w=c.sh;h=c.sw}
+  return {h:fov(w,c.f),v:fov(h,c.f),sensorW:w};
+}
+function list(v,min,max){
+  return String(v||'').split('|').map(x=>+x.trim()).filter(x=>!isNaN(x)&&x>=min&&x<=max);
+}
+function maxDia(s){
+  return Math.max(s.width||0,...s.shells.map(shellDia),...s.tigers.map(tigerLen),0);
+}
+function maxH(s){
+  return Math.max(...s.shells.map(shellH),...s.tigers.map(x=>tigerLen(x)*0.7),0);
+}
 
 function init(){
+  for(let i=2;i<=40;i++)addShell.add(new Option(i+'号',i));
+  for(let i=2;i<=10;i++)addTiger.add(new Option(i+'号',i));
 
-  for(let i=2;i<=40;i++){
+  map=L.map('map',{layers:[osm]}).setView([35.0116,135.7681],13);
+  L.control.layers({'地図':osm,'航空写真':photo}).addTo(map);
 
-    addShell.add(
-      new Option(i+'号',i)
-    );
-  }
-
-  for(let i=2;i<=10;i++){
-
-    addTiger.add(
-      new Option(i+'号',i)
-    );
-  }
-
-  cameraMarker = L.marker(
-    [35.0116,135.7681],
-    {
-      draggable:true
-    }
-  ).addTo(map);
-
-  cameraMarker.on('dragend',e=>{
-
-    const p = e.target.getLatLng();
-
-    camLat.value = p.lat.toFixed(6);
-    camLng.value = p.lng.toFixed(6);
-
+  marker=L.marker([35.0116,135.7681],{draggable:true}).addTo(map).bindPopup('撮影位置');
+  marker.on('dragend',e=>{
+    const p=e.target.getLatLng();
+    camLat.value=p.lat.toFixed(6);
+    camLng.value=p.lng.toFixed(6);
+    draw();
   });
 
   map.on('click',e=>{
-
     if(mode==='camera'){
-
-      camLat.value =
-        e.latlng.lat.toFixed(6);
-
-      camLng.value =
-        e.latlng.lng.toFixed(6);
-
-      cameraMarker.setLatLng([
-        e.latlng.lat,
-        e.latlng.lng
-      ]);
-
-      mode = null;
-
+      camLat.value=e.latlng.lat.toFixed(6);
+      camLng.value=e.latlng.lng.toFixed(6);
+      marker.setLatLng([e.latlng.lat,e.latlng.lng]);
+      mode=null;
+      draw();
       return;
     }
 
     if(mode==='site'){
-
-      const name = prompt(
-        '筒場名',
-        'Site'+(sites.length+1)
-      );
-
+      const name=prompt('筒場名','Site'+(sites.length+1));
       if(!name)return;
-
       sites.push({
-
-        name:name,
+        name,
         lat:e.latlng.lat,
         lng:e.latlng.lng,
         shells:[+addShell.value],
         tigers:[+addTiger.value],
         width:+addWidth.value
-
       });
-
       syncCsv();
-
+      mode=null;
       draw();
-
-      mode = null;
     }
   });
 
   loadSites();
 }
-
 function changeBase(){
-
-  if(base.value==='osm'){
-
-    map.removeLayer(photo);
-    map.addLayer(osm);
-
-  }else{
-
-    map.removeLayer(osm);
-    map.addLayer(photo);
-  }
+  if(base.value==='osm'){map.removeLayer(photo);map.addLayer(osm)}
+  else{map.removeLayer(osm);map.addLayer(photo)}
 }
-
 function moveCamera(){
-
-  map.setView([
-    +camLat.value,
-    +camLng.value
-  ],15);
+  marker.setLatLng([+camLat.value,+camLng.value]);
+  map.setView([+camLat.value,+camLng.value],15);
+  draw();
 }
-
 function loadSites(){
-
-  sites = csv.value
-    .split(/\\n+/)
-    .map(v=>v.trim())
-    .filter(v=>v)
-    .map(line=>{
-
-      const c = line.split(',');
-
-      return {
-
-        name:c[0],
-        lat:+c[1],
-        lng:+c[2],
-        shells:c[3].split('|').map(Number),
-        tigers:c[4].split('|').map(Number),
-        width:+c[5]
-      };
-    });
-
+  sites=csv.value.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
+    const c=l.split(',').map(x=>x.trim());
+    return {
+      name:c[0],
+      lat:+c[1],
+      lng:+c[2],
+      shells:list(c[3],2,40),
+      tigers:list(c[4],2,10),
+      width:+(c[5]||500)
+    };
+  }).filter(s=>!isNaN(s.lat)&&!isNaN(s.lng));
   draw();
 }
-
 function syncCsv(){
-
-  csv.value = sites.map(s=>
-
-    [
-      s.name,
-      s.lat.toFixed(6),
-      s.lng.toFixed(6),
-      s.shells.join('|'),
-      s.tigers.join('|'),
-      s.width
-
-    ].join(',')
-
-  ).join('\\n');
+  csv.value=sites.map(s=>[
+    s.name,
+    s.lat.toFixed(6),
+    s.lng.toFixed(6),
+    s.shells.join('|'),
+    s.tigers.join('|'),
+    s.width
+  ].join(',')).join('\n');
 }
-
 function clearSites(){
-
-  sites = [];
-
-  csv.value = '';
-
+  sites=[];
+  csv.value='';
   draw();
 }
-
 function clearLayers(){
+  layers.forEach(l=>map.removeLayer(l));
+  layers=[];
+}
 
-  layers.forEach(l=>{
+function calc(){
+  const c=cam(),fv=fovs();
+  if(!sites.length)return {c,fv,rows:[],aim:0,left:0,right:0,req:0,rec:0,allOK:false};
 
-    map.removeLayer(l);
+  const avgLat=sites.reduce((a,s)=>a+s.lat,0)/sites.length;
+  const avgLng=sites.reduce((a,s)=>a+s.lng,0)/sites.length;
+  const aim=brg(c.lat,c.lng,avgLat,avgLng);
 
-  });
+  let left=999,right=-999;
+  const rows=[];
 
-  layers = [];
+  for(const s of sites){
+    const d=dist(c.lat,c.lng,s.lat,s.lng);
+    const b=brg(c.lat,c.lng,s.lat,s.lng);
+    const off=sdiff(b,aim);
+
+    const dia=maxDia(s);
+    const h=maxH(s);
+
+    const halfH=r2d(Math.atan((dia/2)/Math.max(d,1)));
+    const l=off-halfH;
+    const r=off+halfH;
+
+    const centerElev=r2d(Math.atan(h/Math.max(d,1)));
+    const halfV=r2d(Math.atan((dia/2)/Math.max(d,1)));
+    const topElev=centerElev+halfV;
+    const bottomElev=centerElev-halfV;
+
+    const obsElev=r2d(Math.atan(c.obs/Math.max(d,1)));
+    const ridgeElev=c.ridge+obsElev;
+
+    const hOK=l>=-fv.h/2 && r<=fv.h/2;
+
+    let vOK=false;
+    if(vJudge.value==='top'){
+      vOK=topElev>=c.pitch-fv.v/2 && topElev<=c.pitch+fv.v/2;
+    }else{
+      vOK=bottomElev>=c.pitch-fv.v/2 && topElev<=c.pitch+fv.v/2;
+    }
+
+    let ridgeTarget=bottomElev;
+    if(ridgeJudge.value==='center')ridgeTarget=centerElev;
+    if(ridgeJudge.value==='top')ridgeTarget=topElev;
+
+    const ridgeOK=ridgeTarget>ridgeElev+c.margin;
+
+    const visible=hOK&&vOK&&ridgeOK;
+
+    left=Math.min(left,l);
+    right=Math.max(right,r);
+
+    rows.push({
+      ...s,d,off,dia,h,
+      left:l,right:r,
+      centerElev,topElev,bottomElev,
+      ridgeElev,
+      hOK,vOK,ridgeOK,visible,
+      halfH
+    });
+  }
+
+  const req=right-left;
+  const rec=req>0 ? fv.sensorW/(2*Math.tan(d2r(req*1.08/2))) : 0;
+
+  return {
+    c,fv,rows,aim,left,right,req,rec,
+    allOK:rows.every(r=>r.visible)
+  };
 }
 
 function draw(){
-
   clearLayers();
+  const data=calc();
+  const c=data.c;
 
+  for(const r of data.rows){
+    let color='#22c55e';
+    if(!r.ridgeOK)color='#ef4444';
+    else if(!r.hOK||!r.vOK)color='#eab308';
+
+    layers.push(
+      L.circle([r.lat,r.lng],{
+        radius:r.dia/2,
+        color,
+        fillColor:color,
+        fillOpacity:.18
+      }).addTo(map).bindPopup(
+        `<b>${r.name}</b><br>
+        左右:${r.hOK?'OK':'NG'}<br>
+        上下:${r.vOK?'OK':'NG'}<br>
+        稜線:${r.ridgeOK?'OK':'NG'}`
+      )
+    );
+
+    layers.push(L.marker([r.lat,r.lng]).addTo(map));
+
+    const base=brg(c.lat,c.lng,r.lat,r.lng);
+    const cnt=r.tigers.length;
+
+    r.tigers.forEach((n,i)=>{
+      const a=cnt===1?0:-25+(50/(cnt-1))*i;
+      const p=dest(r.lat,r.lng,base+a,tigerLen(n));
+      layers.push(L.polyline([[r.lat,r.lng],p],{color:'#facc15'}).addTo(map));
+    });
+  }
+
+  if(data.rows.length){
+    const len=Math.max(1000,...data.rows.map(r=>r.d+r.dia));
+    [data.aim-data.fv.h/2,data.aim+data.fv.h/2].forEach(x=>{
+      layers.push(L.polyline([[c.lat,c.lng],dest(c.lat,c.lng,x,len)],{
+        color:'#60a5fa',
+        dashArray:'8,8'
+      }).addTo(map));
+    });
+    [data.aim+data.left,data.aim+data.right].forEach(x=>{
+      layers.push(L.polyline([[c.lat,c.lng],dest(c.lat,c.lng,x,len)],{
+        color:'#f97316',
+        weight:3
+      }).addTo(map));
+    });
+  }
+
+  update(data);
+}
+
+function update(data){
   dots.innerHTML='';
 
-  sites.forEach(s=>{
+  const lines=data.rows.map(r=>{
+    let reason='見える';
+    if(!r.ridgeOK)reason='遮蔽物・山の稜線で被り';
+    else if(!r.hOK)reason='左右見切れ';
+    else if(!r.vOK)reason='上下見切れ';
 
-    const circle = L.circle(
-      [s.lat,s.lng],
-      {
-        radius:s.width/2,
-        color:'#22c55e',
-        fillOpacity:.2
-      }
-    ).addTo(map);
+    return `${r.name}: ${reason}
+  左右 ${r.left.toFixed(1)}°〜${r.right.toFixed(1)}°
+  上下 ${r.bottomElev.toFixed(1)}°〜${r.topElev.toFixed(1)}°
+  稜線+遮蔽物 ${r.ridgeElev.toFixed(1)}°`;
+  }).join('\n\n');
 
-    layers.push(circle);
+  res.innerHTML=
+`水平画角: ${data.fv.h.toFixed(2)}°
+垂直画角: ${data.fv.v.toFixed(2)}°
+カメラ仰角: ${data.c.pitch.toFixed(1)}°
+必要水平画角: ${data.req.toFixed(2)}°
+推奨焦点距離: 約 ${data.rec.toFixed(1)}mm以下
+総合判定: <span class="${data.allOK?'ok':'ng'}">${data.allOK?'OK':'NG'}</span>
 
-    const marker = L.marker(
-      [s.lat,s.lng]
-    ).addTo(map);
+${lines}`;
 
-    layers.push(marker);
+  for(const r of data.rows){
+    const x=50+(r.off/data.fv.h)*100;
+    const y=50-((r.centerElev-data.c.pitch)/data.fv.v)*100;
+    const size=Math.max(20,Math.min(120,(r.halfH*2/data.fv.h)*100));
 
-    const d = document.createElement('div');
-
+    const d=document.createElement('div');
     d.className='dot';
-
-    d.style.left =
-      (50 + Math.random()*20 - 10)+'%';
-
-    d.style.top =
-      (50 + Math.random()*20 - 10)+'%';
-
-    d.style.width='70px';
-
-    d.style.height='70px';
-
+    if(!r.visible)d.classList.add(r.ridgeOK?'warn':'ng');
+    d.style.left=x+'%';
+    d.style.top=y+'%';
+    d.style.width=size+'%';
+    d.style.height=size+'%';
+    d.textContent=r.name;
     dots.appendChild(d);
-  });
-
-  res.innerHTML =
-`筒場数: ${sites.length}
-
-複数筒場:
-OK
-
-複数号玉:
-OK
-
-トラの尾:
-OK
-
-KML出力:
-OK`;
-}
-
-async function startCamera(){
-
-  try{
-
-    stream =
-      await navigator.mediaDevices.getUserMedia({
-
-        video:{
-          facingMode:{
-            ideal:'environment'
-          }
-        },
-
-        audio:false
-      });
-
-    video.srcObject = stream;
-
-  }catch(e){
-
-    alert('カメラ起動失敗');
-  }
-}
-
-function stopCamera(){
-
-  if(stream){
-
-    stream.getTracks()
-      .forEach(t=>t.stop());
-
-    stream = null;
-
-    video.srcObject = null;
   }
 }
 
 function fitAll(){
+  const pts=[[+camLat.value,+camLng.value],...sites.map(s=>[s.lat,s.lng])];
+  map.fitBounds(pts,{padding:[40,40]});
+}
 
-  if(!sites.length)return;
-
-  map.fitBounds(
-
-    sites.map(s=>[
-      s.lat,
-      s.lng
-    ]),
-
-    {
-      padding:[40,40]
-    }
-  );
+async function startCamera(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'}},
+      audio:false
+    });
+    video.srcObject=stream;
+  }catch(e){
+    alert('カメラ起動失敗');
+  }
+}
+function stopCamera(){
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
+    stream=null;
+    video.srcObject=null;
+  }
 }
 
 function savePreset(){
-
-  localStorage.setItem(
-    'fwPreset',
-
-    JSON.stringify({
-
-      camLat:camLat.value,
-      camLng:camLng.value,
-      csv:csv.value
-
-    })
-  );
-
+  localStorage.setItem('fwPreset',JSON.stringify({
+    camLat:camLat.value,
+    camLng:camLng.value,
+    focal:focal.value,
+    pitch:pitch.value,
+    csv:csv.value,
+    ridge:ridge.value,
+    obs:obs.value,
+    margin:margin.value
+  }));
   alert('保存しました');
 }
 
 function exportKml(){
-
-  let kml =
-'<?xml version="1.0" encoding="UTF-8"?>';
-
-  kml +=
-'<kml xmlns="http://www.opengis.net/kml/2.2"><Document>';
-
+  const kml=['<?xml version="1.0" encoding="UTF-8"?>'];
+  kml.push('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>');
   sites.forEach(s=>{
-
-    kml +=
-`<Placemark>
-<name>${s.name}</name>
-<Point>
-<coordinates>${s.lng},${s.lat},0</coordinates>
-</Point>
-</Placemark>`;
+    kml.push(`<Placemark><name>${s.name}</name><Point><coordinates>${s.lng},${s.lat},0</coordinates></Point></Placemark>`);
   });
+  kml.push('</Document></kml>');
 
-  kml += '</Document></kml>';
-
-  const blob =
-    new Blob(
-      [kml],
-      {
-        type:'application/vnd.google-earth.kml+xml'
-      }
-    );
-
-  const a =
-    document.createElement('a');
-
-  a.href =
-    URL.createObjectURL(blob);
-
-  a.download =
-    'fireworks_ar.kml';
-
+  const blob=new Blob([kml.join('')],{type:'application/vnd.google-earth.kml+xml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='fireworks_ar.kml';
   a.click();
 }
 
-window.onload = init;
+document.addEventListener('input',e=>{
+  if(['focal','orient','pitch','sw','sh','ridge','obs','margin','vJudge','ridgeJudge'].includes(e.target.id)){
+    draw();
+  }
+});
 
+window.onload=init;
 </script>
 
 </body>
